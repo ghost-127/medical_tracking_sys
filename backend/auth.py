@@ -27,6 +27,20 @@ def get_user_from_token(token):
         }
         return DevUser(), dev_profile
 
+    if token == "dev-token-nurse":
+        class DevNurseUser:
+            id = "11111111-1111-1111-1111-111111111111"
+            email = "nurse@medipulse.org"
+        dev_nurse_profile = {
+            "id": "11111111-1111-1111-1111-111111111111",
+            "name": "Sarah Jenkins, RN",
+            "role": "NURSE",
+            "department": "Cardiology & ICU",
+            "is_active": True
+        }
+        return DevNurseUser(), dev_nurse_profile
+
+
     supabase = get_db_client()   # anon client for auth.get_user
     db = get_admin_client()       # admin client for profiles table (bypasses RLS)
     try:

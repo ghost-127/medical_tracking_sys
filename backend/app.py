@@ -17,6 +17,20 @@ def create_app():
     db = get_admin_client()         # service-role client — bypasses RLS for all table ops
 
     # ------------------------------------------------------------------------
+    # CORS HEADERS & PREFLIGHT
+    # ------------------------------------------------------------------------
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+
+    @app.route('/api/<path:path>', methods=['OPTIONS'])
+    def options_handler(path):
+        return ('', 204)
+
+    # ------------------------------------------------------------------------
     # FRONTEND ROUTES
     # ------------------------------------------------------------------------
     @app.route('/')
@@ -129,6 +143,23 @@ def create_app():
                     "name": "Developer Admin",
                     "role": "ADMIN",
                     "department": "Engineering & Ops",
+                    "is_active": True
+                }
+            }), 200
+
+        if email in ['nurse@medipulse.org', 'sarah.jenkins@medipulse.org'] and password in ['nurse123', '1234']:
+            return jsonify({
+                "message": "Nurse Login Successful",
+                "access_token": "dev-token-nurse",
+                "user": {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "email": "nurse@medipulse.org"
+                },
+                "profile": {
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "name": "Sarah Jenkins, RN",
+                    "role": "NURSE",
+                    "department": "Cardiology & ICU",
                     "is_active": True
                 }
             }), 200
@@ -512,6 +543,120 @@ def create_app():
             return jsonify({"message": "Custom QR identity assigned successfully.", "data": ins.data[0]}), 201
         except Exception as e:
             return jsonify({"error": "Failed to assign custom QR code", "details": str(e)}), 500
+
+    # ------------------------------------------------------------------------
+    # COMPLAINTS MANAGEMENT ENDPOINTS
+    # ------------------------------------------------------------------------
+    @app.route('/api/complaints', methods=['GET'])
+    @require_auth(['ADMIN', 'NURSE', 'STAFF'])
+    def get_all_complaints():
+        try:
+            res = db.table('complaints').select('*').order('created_at', desc=True).execute()
+            return jsonify({"count": len(res.data) if res.data else 0, "data": res.data or []}), 200
+        except Exception as e:
+            return jsonify({"error": "Failed to fetch complaints", "details": str(e)}), 500
+
+    @app.route('/api/complaints', methods=['POST'])
+    @require_auth(['ADMIN', 'NURSE', 'STAFF'])
+    def create_new_complaint():
+        data = request.get_json() or {}
+        equipment_id = data.get('equipment_id')
+        equipment_name = data.get('equipment_name', '')
+        equipment_code = data.get('equipment_code', '')
+        equipment_category = data.get('equipment_category', '')
+        description = data.get('description', '')
+        severity = data.get('severity', 'MEDIUM').upper()
+        reported_location = data.get('reported_location', '')
+        error_code = data.get('error_code', '')
+        complaint_type = data.get('type', 'EQUIPMENT_PROBLEM')
+
+        if not equipment_id or not description:
+            return jsonify({"error": "Bad Request", "message": "equipment_id and description are required."}), 400
+
+        user_id = request.current_user.id
+        nurse_name = request.current_profile.get('name', 'Staff Member')
+        nurse_dept = request.current_profile.get('department', 'General')
+
+        try:
+            import time
+            ticket_num = f"CMP-{int(time.time()) % 10000:04d}"
+            complaint_payload = {
+                "ticket_number": ticket_num,
+                "equipment_id": equipment_id,
+                "equipment_name": equipment_name,
+                "equipment_code": equipment_code,
+                "equipment_category": equipment_category,
+                "type": complaint_type,
+                "severity": severity,
+                "status": "SUBMITTED",
+                "nurse_id": str(user_id),
+                "nurse_name": nurse_name,
+                "nurse_department": nurse_dept,
+                "reported_location": reported_location,
+                "description": description,
+                "error_code": error_code
+            }
+            res = db.table('complaints').insert(complaint_payload).execute()
+
+            # Broadcast notification
+            try:
+                db.table('notifications').insert({
+                    "title": f"New Complaint: {ticket_num}",
+                    "message": f"{nurse_name} reported {severity} issue for {equipment_name or equipment_id}",
+                    "type": "COMPLAINT",
+                    "severity": severity,
+                    "target_role": "ADMIN",
+                    "reference_id": ticket_num
+                }).execute()
+            except Exception:
+                pass
+
+            return jsonify({"message": "Complaint logged successfully.", "data": res.data[0] if res.data else complaint_payload}), 201
+        except Exception as e:
+            return jsonify({"error": "Failed to log complaint", "details": str(e)}), 500
+
+    @app.route('/api/complaints/<complaint_id>/status', methods=['PUT'])
+    @require_auth(['ADMIN', 'NURSE', 'STAFF'])
+    def update_complaint_status_endpoint(complaint_id):
+        data = request.get_json() or {}
+        status = data.get('status')
+        assigned_tech_name = data.get('assigned_tech_name')
+        resolution_summary = data.get('resolution_summary')
+
+        update_fields = {}
+        if status: update_fields['status'] = status
+        if assigned_tech_name: update_fields['assigned_tech_name'] = assigned_tech_name
+        if resolution_summary: update_fields['resolution_summary'] = resolution_summary
+
+        if not update_fields:
+            return jsonify({"error": "Bad Request", "message": "No valid status fields provided."}), 400
+
+        try:
+            res = db.table('complaints').update(update_fields).eq('id', complaint_id).execute()
+            return jsonify({"message": "Complaint updated successfully.", "data": res.data}), 200
+        except Exception as e:
+            return jsonify({"error": "Failed to update complaint", "details": str(e)}), 500
+
+    # ------------------------------------------------------------------------
+    # NOTIFICATIONS ENDPOINTS
+    # ------------------------------------------------------------------------
+    @app.route('/api/notifications', methods=['GET'])
+    @require_auth(['ADMIN', 'NURSE', 'STAFF'])
+    def get_all_notifications():
+        try:
+            res = db.table('notifications').select('*').order('created_at', desc=True).limit(50).execute()
+            return jsonify({"data": res.data or []}), 200
+        except Exception as e:
+            return jsonify({"error": "Failed to fetch notifications", "details": str(e)}), 500
+
+    @app.route('/api/notifications/<notification_id>/read', methods=['PUT'])
+    @require_auth(['ADMIN', 'NURSE', 'STAFF'])
+    def mark_notification_as_read(notification_id):
+        try:
+            res = db.table('notifications').update({"is_read": True}).eq('id', notification_id).execute()
+            return jsonify({"message": "Notification marked as read.", "data": res.data}), 200
+        except Exception as e:
+            return jsonify({"error": "Failed to update notification", "details": str(e)}), 500
 
     # ------------------------------------------------------------------------
     # GENERIC ERROR HANDLERS
