@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediPulse - Clinical Equipment & Telemetry Tracking System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #070b15;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --bg-card-hover: rgba(30, 41, 59, 0.85);
+            --sidebar-bg: #09101f;
+            --accent-cyan: #38bdf8;
+            --accent-blue: #6366f1;
+            --accent-teal: #14b8a6;
+            --accent-green: #10b981;
+            --accent-red: #f43f5e;
+            --accent-amber: #fbbf24;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border: rgba(51, 65, 85, 0.6);
+            --glass-bg: rgba(15, 23, 42, 0.82);
+            --shadow-glow: 0 0 35px rgba(56, 189, 248, 0.18);
+            --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* MEDICAL BACKGROUND PATTERN & BANNER */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(14, 165, 233, 0.12), transparent 70%),
+                        linear-gradient(135deg, rgba(7, 11, 21, 0.78), rgba(15, 23, 42, 0.88)), 
+                        url('./medical_hero.jpg') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s var(--ease-spring), visibility 0.5s var(--ease-spring);
+        }
+
+        .auth-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 2.8rem 2.5rem;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            position: relative;
+            animation: slideUpFade 0.7s var(--ease-spring) forwards;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(56, 189, 248, 0.5);
+            }
+        }
+
+        .tab-pane {
+            animation: slideInRight 0.45s var(--ease-spring) forwards;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .heartbeat-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(6, 182, 212, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-cyan);
+            font-size: 1.2rem;
+            box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+
+        .auth-card h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .auth-card p {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: rgba(10, 15, 29, 0.6);
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.85rem;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            box-shadow: none;
+            margin-top: 0.6rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        /* CLINICAL SIDEBAR */
+        #sidebar {
+            width: 270px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1.2rem;
+            z-index: 100;
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2.2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+            padding-left: 0.5rem;
+        }
+
+        .nav-link {
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            color: var(--text-sub);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--bg-card-hover);
+            color: var(--accent-cyan);
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .user-profile-card {
+            margin-top: auto;
+            padding: 1rem;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+
+        .user-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .user-role-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.12);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        /* MAIN CONTENT AREA */
+        #main-content {
+            flex: 1;
+            padding: 2.2rem;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.05), transparent 40%);
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .clinical-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid rgba(10, 185, 129, 0.2);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        /* METRIC CARDS */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), transparent);
+        }
+
+        .metric-label {
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .metric-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+            color: var(--text-main);
+        }
+
+        /* TABLES */
+        .card-table-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-sub);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        td {
+            padding: 1.1rem 1rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-available { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .status-in-use { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .status-maintenance { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        /* MODALS */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2.2rem;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            animation: slideDownFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideDownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .metric-card {
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(6, 182, 212, 0.4);
+            box-shadow: 0 12px 30px rgba(6, 182, 212, 0.15);
+        }
+
+        .modal-content h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1.2rem;
+            color: var(--accent-cyan);
+        }
+
+        .action-btn {
+            padding: 0.45rem 0.9rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .action-edit { background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border); }
+        .action-edit:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .action-disable { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .action-disable:hover { background: rgba(239, 68, 68, 0.3); }
+    </style>
+</head>
+<body>
+
+    <!-- MEDICAL LOGIN OVERLAY -->
+    <div id="login-overlay">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="heartbeat-icon">🩺</div>
+                <h2>MediPulse System</h2>
+            </div>
+            <p>Clinical Equipment Tracking & Asset Intelligence</p>
+
+            <div id="auth-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 1rem; display: none;"></div>
+
+            <div class="form-group">
+                <label>Hospital Email</label>
+                <input type="email" id="login-email" placeholder="admin@hospital.org" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-password" placeholder="••••••••" required>
+            </div>
+
+            <button class="btn" onclick="handleLogin()">
+                <span>Authorize & Connect</span> ➔
+            </button>
+            <button class="btn btn-secondary" style="margin-top: 0.8rem;" onclick="quickDevLogin()">
+                ⚡ One-Click Developer Admin Login
+            </button>
+        </div>
+    </div>
+
+    <!-- CLINICAL SIDEBAR -->
+    <div id="sidebar" style="display: none;">
+        <div class="brand-header">
+            <div class="heartbeat-icon">🏥</div>
+            <div class="brand-title">MediPulse</div>
+        </div>
+
+        <div class="nav-section-label">Core Operations</div>
+        <div class="nav-link active" onclick="switchTab(event, 'dashboard')"><span>📊</span> Overview Monitor</div>
+        <div class="nav-link" onclick="switchTab(event, 'equipment')"><span>🩺</span> Medical Equipment</div>
+        <div class="nav-link" onclick="switchTab(event, 'locations')"><span>📍</span> Clinical Wards & Rooms</div>
+        <div class="nav-link" onclick="switchTab(event, 'maintenance')"><span>🔧</span> Maintenance Operations</div>
+
+        <div class="nav-section-label" style="margin-top: 1.5rem;">Administration</div>
+        <div class="nav-link" onclick="switchTab(event, 'users')"><span>👥</span> Staff & Nurse Registry</div>
+
+        <div class="user-profile-card">
+            <div class="user-name" id="profile-name">Clinical Admin</div>
+            <div class="user-role-tag" id="profile-role">ADMINISTRATOR</div>
+            <button class="btn btn-secondary" style="padding: 0.4rem; font-size: 0.8rem; margin-top: 0.4rem;" onclick="handleLogout()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT -->
+    <div id="main-content" style="display: none;">
+
+        <!-- OVERVIEW MONITOR TAB -->
+        <div id="tab-dashboard" class="tab-pane">
+            <div class="page-header">
+                <div>
+                    <h1>Clinical Operations Monitor</h1>
+                    <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0.3rem;">Real-time hospital inventory status & asset tracking</p>
+                </div>
+                <div class="clinical-badge">
+                    <div class="pulse-dot"></div>
+                    <span>Supabase Live Sync Active</span>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Assets</div>
+                    <div class="metric-value" id="stat-total-eq" style="color: var(--accent-cyan);">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Ready / Available</div>
+                    <div class="metric-value" id="stat-avail-eq" style="color: var(--accent-green);">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Under Maintenance</div>
+                    <div class="metric-value" id="stat-maint-eq" style="color: var(--accent-red);">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Monitored Locations</div>
+                    <div class="metric-value" id="stat-loc-count" style="color: var(--accent-amber);">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EQUIPMENT INVENTORY TAB -->
+        <div id="tab-equipment" class="tab-pane" style="display: none;">
+            <div class="page-header">
+                <div>
+                    <h1>Medical Equipment Inventory</h1>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Track ventilators, ECG monitors, defibrillators & clinical devices</p>
+                </div>
+                <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="openAddEquipmentModal()">+ Add New Equipment</button>
+            </div>
+
+            <!-- SEARCH BAR -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <input type="text" id="equipment-search-input" placeholder="🔍 Search equipment by ID, Name, or Category..." onkeyup="filterEquipmentList()" style="padding: 0.95rem 1.2rem; border-radius: 14px; font-size: 0.95rem; background: var(--bg-card); border: 1px solid var(--border);">
+            </div>
+
+            <div class="card-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Equipment ID / Name</th>
+                            <th>Category</th>
+                            <th>Assigned Ward / Room</th>
+                            <th>Status</th>
+                            <th>Maintenance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="equipment-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- LOCATIONS TAB -->
+        <div id="tab-locations" class="tab-pane" style="display: none;">
+            <div class="page-header">
+                <div>
+                    <h1>Clinical Wards & Locations</h1>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital buildings, floors, departments, and rooms</p>
+                </div>
+                <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="openAddLocationModal()">+ Add Clinical Room</button>
+            </div>
+            <div class="card-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Building</th>
+                            <th>Floor</th>
+                            <th>Department</th>
+                            <th>Room / Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="location-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MAINTENANCE TAB -->
+        <div id="tab-maintenance" class="tab-pane" style="display: none;">
+            <div class="page-header">
+                <div>
+                    <h1>Maintenance & Repair Schedules</h1>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Calibrations, inspections, and repair logs</p>
+                </div>
+            </div>
+            <div class="card-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Target Equipment</th>
+                            <th>Scheduled Date</th>
+                            <th>Service Status</th>
+                            <th>Service Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="maintenance-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- USERS TAB -->
+        <div id="tab-users" class="tab-pane" style="display: none;">
+            <div class="page-header">
+                <div>
+                    <h1>Staff & Nurse Registry</h1>
+                    <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital user roles and access permissions</p>
+                </div>
+                <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="toggleRegisterModal()">+ Add Staff / Nurse Account</button>
+            </div>
+            <div class="card-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User Name</th>
+                            <th>Hospital Email</th>
+                            <th>Clinical Role</th>
+                            <th>Department</th>
+                            <th>Account Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL: ADD / REGISTER USER -->
+    <div id="modal-register" class="modal-backdrop">
+        <div class="modal-content">
+            <h3>Register Clinical Account</h3>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="reg-name" placeholder="Dr. Sarah Jenkins" required>
+            </div>
+            <div class="form-group">
+                <label>Hospital Email</label>
+                <input type="email" id="reg-email" placeholder="s.jenkins@hospital.org" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-password" placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+                <label>Clinical Role</label>
+                <select id="reg-role">
+                    <option value="STAFF">STAFF</option>
+                    <option value="NURSE">NURSE</option>
+                    <option value="ADMIN">ADMINISTRATOR</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="reg-dept" value="ICU / Cardiology">
+            </div>
+            <button class="btn" onclick="handleRegister()">Register Account</button>
+            <button class="btn btn-secondary" onclick="closeModal('modal-register')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD EQUIPMENT -->
+    <div id="modal-equipment" class="modal-backdrop">
+        <div class="modal-content">
+            <h3>Add Medical Equipment</h3>
+            <div class="form-group">
+                <label>Equipment Name</label>
+                <input type="text" id="eq-name" placeholder="e.g. Mindray ECG Monitor T5" required>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <input type="text" id="eq-cat" placeholder="e.g. Cardiology / Diagnostic" required>
+            </div>
+            <div class="form-group">
+                <label>Assigned Ward / Room</label>
+                <select id="eq-loc"></select>
+            </div>
+
+            <!-- QR CODE ASSIGNMENT (on registration) -->
+            <div style="margin-top: 1.2rem; padding: 1rem 1.1rem; border-radius: 12px; border: 1px solid var(--border); background: rgba(10, 15, 29, 0.55);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.7rem;">
+                    <span style="font-size: 1.1rem;">📱</span>
+                    <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">QR Code Assignment</span>
+                    <span style="font-size: 0.72rem; background: rgba(0,220,180,0.12); color: var(--accent-cyan); border: 1px solid rgba(0,220,180,0.25); border-radius: 20px; padding: 1px 8px; margin-left: auto;">Optional</span>
+                </div>
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <label style="font-size: 0.78rem;">Custom QR URL / Identifier</label>
+                    <input type="text" id="eq-qr-url"
+                        placeholder="Leave blank to auto-generate"
+                        oninput="updateQrPreview()"
+                        style="font-family: monospace; font-size: 0.83rem;">
+                </div>
+                <div id="eq-qr-preview" style="font-size: 0.75rem; color: var(--text-sub); background: rgba(0,0,0,0.3); padding: 0.45rem 0.7rem; border-radius: 7px; border: 1px solid var(--border); word-break: break-all; min-height: 2.1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="color: var(--accent-cyan);">🔗</span>
+                    <span id="eq-qr-preview-text" style="color: var(--text-sub); font-style: italic;">Auto-generate on registration</span>
+                </div>
+                <p style="font-size: 0.72rem; color: var(--text-sub); margin-top: 0.5rem; margin-bottom: 0;">⚡ QR code is permanent — it will always resolve to the latest equipment data.</p>
+            </div>
+
+            <div id="eq-form-feedback" style="display:none; margin-top: 0.8rem; font-size: 0.83rem; padding: 0.5rem 0.8rem; border-radius: 8px;"></div>
+
+            <div style="display: flex; gap: 0.7rem; margin-top: 1.2rem;">
+                <button class="btn" id="eq-register-btn" onclick="handleAddEquipment()" style="flex: 1;">📋 Register &amp; Assign QR</button>
+                <button class="btn btn-secondary" onclick="closeModal('modal-equipment')" style="width: auto; padding: 0 1.2rem;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EQUIPMENT DETAILS (REUSABLE FOR QR SCAN & DETAILS VIEW) -->
+    <div id="modal-equipment-details" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 580px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem;">
+                <h3 style="margin-bottom: 0;">🩺 Equipment Specification & Live Status</h3>
+                <button onclick="closeModal('modal-equipment-details')" style="background: transparent; border: none; color: var(--text-sub); font-size: 1.4rem; cursor: pointer;">✕</button>
+            </div>
+            
+            <div id="equipment-details-content">
+                <div style="text-align: center; padding: 2rem; color: var(--text-sub);">Loading equipment details...</div>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top: 1.5rem;" onclick="closeModal('modal-equipment-details')">Close Panel</button>
+        </div>
+    </div>
+
+    <!-- MODAL: PERMANENT QR CODE MANAGEMENT -->
+    <div id="modal-qr-management" class="modal-backdrop">
+        <div class="modal-content" style="max-width: 520px; text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.8rem;">
+                <h3 style="margin-bottom: 0;">📱 Permanent Asset QR Tag</h3>
+                <button onclick="closeModal('modal-qr-management')" style="background: transparent; border: none; color: var(--text-sub); font-size: 1.4rem; cursor: pointer;">✕</button>
+            </div>
+
+            <div id="qr-modal-body">
+                <div id="qr-target-title" style="font-weight: 700; font-size: 1.1rem; color: var(--text-main); margin-bottom: 0.3rem;">Equipment Name</div>
+                <div id="qr-target-subtitle" style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 1.2rem;">ID: -</div>
+
+                <div style="background: #ffffff; padding: 1.5rem; border-radius: 16px; display: inline-block; margin-bottom: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                    <div id="qrcode-canvas-container"></div>
+                </div>
+
+                <div id="qr-status-badge" style="margin-bottom: 1rem;">
+                    <span class="status-pill status-available">ACTIVE TAG</span>
+                </div>
+
+                <div style="font-size: 0.78rem; color: var(--text-sub); margin-bottom: 1.5rem; word-break: break-all; background: rgba(10, 15, 29, 0.6); padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);">
+                    🔗 Permanent URL: <span id="qr-stable-url" style="color: var(--accent-cyan); font-family: monospace;">-</span>
+                </div>
+
+                <!-- ASSIGN / CHANGE CUSTOM QR CODE FORM -->
+                <div style="margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--border); text-align: left;">
+                    <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase;">Assign / Change Custom QR URL or ID</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="text" id="custom-qr-input" placeholder="e.g. https://medeqp.app/qr/ASSET-9901" style="flex: 1; padding: 0.65rem 0.9rem; border-radius: 8px; border: 1px solid var(--border); background: rgba(10, 15, 29, 0.6); color: var(--text-main); font-size: 0.85rem;">
+                        <button class="btn" style="width: auto; padding: 0.65rem 1rem; font-size: 0.85rem;" onclick="assignCustomQR()">Assign QR</button>
+                    </div>
+                </div>
+
+                <!-- ADMIN QR MANAGEMENT CONTROLS -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.2rem;">
+                    <button class="btn" onclick="printDownloadQR()">🖨️ Print / Download QR</button>
+                    <button class="btn btn-secondary" style="margin-top: 0;" onclick="reissueQR()">🔄 Auto-Reissue QR</button>
+                </div>
+                <button class="btn action-disable" style="width: 100%; margin-top: 0.75rem; padding: 0.7rem; border-radius: 10px;" onclick="deactivateQR()">🚫 Deactivate QR Tag</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD LOCATION -->
+    <div id="modal-location" class="modal-backdrop">
+        <div class="modal-content">
+            <h3>Add Ward Location</h3>
+            <div class="form-group">
+                <label>Building / Block</label>
+                <input type="text" id="loc-bldg" placeholder="Surgical Wing" required>
+            </div>
+            <div class="form-group">
+                <label>Floor</label>
+                <input type="text" id="loc-floor" placeholder="3rd Floor" required>
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="loc-dept" placeholder="ICU" required>
+            </div>
+            <div class="form-group">
+                <label>Room / Unit Number</label>
+                <input type="text" id="loc-room" placeholder="ICU Bed 04" required>
+            </div>
+            <button class="btn" onclick="handleAddLocation()">Save Location</button>
+            <button class="btn btn-secondary" onclick="closeModal('modal-location')">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('access_token');
+        let currentProfile = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (authToken) {
+                fetchProfile();
+            }
+        });
+
+        async function fetchProfile() {
+            try {
+                const res = await fetch('/api/auth/me', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    currentProfile = data.profile;
+                    document.getElementById('profile-name').innerText = currentProfile.name;
+                    document.getElementById('profile-role').innerText = currentProfile.role;
+                    document.getElementById('login-overlay').style.display = 'none';
+                    document.getElementById('sidebar').style.display = 'flex';
+                    document.getElementById('main-content').style.display = 'block';
+                    loadDashboardStats();
+                    loadEquipment();
+
+                    // Check if page opened via direct QR scan URL (e.g. /equipment/{id})
+                    const path = window.location.pathname;
+                    if (path.startsWith('/equipment/')) {
+                        const targetEqId = path.split('/equipment/')[1];
+                        if (targetEqId) {
+                            switchTab(null, 'equipment');
+                            openEquipmentDetailsModal(targetEqId);
+                        }
+                    }
+                } else {
+                    handleLogout();
+                }
+            } catch (err) {
+                console.error(err);
+                handleLogout();
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errDiv = document.getElementById('auth-error');
+            errDiv.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    authToken = data.access_token;
+                    localStorage.setItem('access_token', authToken);
+                    fetchProfile();
+                } else {
+                    errDiv.innerText = data.error || data.details || 'Authorization failed';
+                    errDiv.style.display = 'block';
+                }
+            } catch (err) {
+                errDiv.innerText = 'Server connection error';
+                errDiv.style.display = 'block';
+            }
+        }
+
+        async function quickDevLogin() {
+            document.getElementById('login-email').value = 'admin@medipulse.org';
+            document.getElementById('login-password').value = 'admin123';
+            await handleLogin();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('access_token');
+            authToken = null;
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.opacity = '';
+            overlay.style.visibility = '';
+            overlay.style.display = 'flex';
+            document.getElementById('sidebar').style.display = 'none';
+            document.getElementById('main-content').style.display = 'none';
+        }
+
+        function switchTab(evt, tabName) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`tab-${tabName}`).style.display = 'block';
+            if (evt && evt.currentTarget) {
+                evt.currentTarget.classList.add('active');
+            }
+
+            if (tabName === 'users') loadUsers();
+            if (tabName === 'equipment') loadEquipment();
+            if (tabName === 'locations') loadLocations();
+            if (tabName === 'maintenance') loadMaintenance();
+        }
+
+        async function loadDashboardStats() {
+            const res = await fetch('/api/equipment', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            const locRes = await fetch('/api/locations', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            
+            if (res.ok) {
+                const data = await res.json();
+                const total = data.count || 0;
+                const avail = data.data.filter(e => e.status === 'AVAILABLE').length;
+                const maint = data.data.filter(e => e.maintenance_status === 'UNDER_MAINTENANCE').length;
+                
+                document.getElementById('stat-total-eq').innerText = total;
+                document.getElementById('stat-avail-eq').innerText = avail;
+                document.getElementById('stat-maint-eq').innerText = maint;
+            }
+
+            if (locRes.ok) {
+                const locData = await locRes.json();
+                document.getElementById('stat-loc-count').innerText = locData.data ? locData.data.length : 0;
+            }
+        }
+
+        async function loadUsers() {
+            const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('user-table-body');
+                tbody.innerHTML = '';
+                data.data.forEach(u => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${u.name}</strong></td>
+                            <td>${u.email}</td>
+                            <td><span class="status-pill status-in-use">${u.role}</span></td>
+                            <td>${u.department}</td>
+                            <td>${u.is_active ? '<span class="status-pill status-available">Active</span>' : '<span class="status-pill status-maintenance">Disabled</span>'}</td>
+                            <td>
+                                <button class="action-btn action-disable" onclick="toggleUserStatus('${u.id}', ${!u.is_active})">${u.is_active ? 'Disable' : 'Enable'}</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        async function toggleUserStatus(userId, newStatus) {
+            await fetch(`/api/admin/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ is_active: newStatus })
+            });
+            loadUsers();
+        }
+
+        let cachedEquipmentList = [];
+
+        async function loadEquipment() {
+            const res = await fetch('/api/equipment', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                cachedEquipmentList = data.data || [];
+                renderEquipmentTable(cachedEquipmentList);
+            }
+        }
+
+        function renderEquipmentTable(equipmentItems) {
+            const tbody = document.getElementById('equipment-table-body');
+            tbody.innerHTML = '';
+            if (equipmentItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 2rem;">No equipment found matching criteria.</td></tr>`;
+                return;
+            }
+            equipmentItems.forEach(e => {
+                const loc = e.locations ? `${e.locations.building} - ${e.locations.room}` : 'Unassigned';
+                const safeName = e.equipment_name ? e.equipment_name.replace(/'/g, "&#39;").replace(/"/g, "&quot;") : 'Equipment';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <strong style="color: var(--accent-cyan); cursor: pointer;" onclick="openEquipmentDetailsModal('${e.equipment_id}')" title="Click to view details">${e.equipment_name}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-sub);">ID: ${e.equipment_id}</div>
+                        </td>
+                        <td>${e.category}</td>
+                        <td>📍 ${loc}</td>
+                        <td><span class="status-pill ${e.status === 'AVAILABLE' ? 'status-available' : 'status-in-use'}">${e.status}</span></td>
+                        <td><span class="status-pill ${e.maintenance_status === 'NORMAL' ? 'status-available' : 'status-maintenance'}">${e.maintenance_status}</span></td>
+                        <td>
+                            <button class="action-btn action-edit" style="margin-right: 0.3rem;" onclick="openEquipmentDetailsModal('${e.equipment_id}')">View Details</button>
+                            <button class="action-btn action-edit" style="margin-right: 0.3rem;" onclick="openQRModal('${e.equipment_id}', '${safeName}')">📱 QR Tag</button>
+                            <button class="action-btn action-edit" onclick="markMaintenance('${e.equipment_id}')">Service</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterEquipmentList() {
+            const query = (document.getElementById('equipment-search-input').value || '').toLowerCase().trim();
+            if (!query) {
+                renderEquipmentTable(cachedEquipmentList);
+                return;
+            }
+            const filtered = cachedEquipmentList.filter(e => {
+                const eqId = (e.equipment_id || '').toLowerCase();
+                const eqName = (e.equipment_name || '').toLowerCase();
+                const eqCat = (e.category || '').toLowerCase();
+                return eqId.includes(query) || eqName.includes(query) || eqCat.includes(query);
+            });
+            renderEquipmentTable(filtered);
+        }
+
+        async function openEquipmentDetailsModal(equipmentId) {
+            const detailsContainer = document.getElementById('equipment-details-content');
+            detailsContainer.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--text-sub);">Fetching latest equipment data...</div>`;
+            document.getElementById('modal-equipment-details').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/equipment/${equipmentId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const resData = await res.json();
+                    const e = resData.data;
+                    const loc = e.locations || {};
+                    const lastUpdated = e.updated_at ? new Date(e.updated_at).toLocaleString() : (e.created_at ? new Date(e.created_at).toLocaleString() : 'N/A');
+
+                    detailsContainer.innerHTML = `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Equipment ID</div>
+                                <div style="font-weight: 700; color: var(--accent-cyan); font-size: 0.85rem; word-break: break-all; margin-top: 0.3rem;">${e.equipment_id}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Equipment Name</div>
+                                <div style="font-weight: 700; font-size: 1rem; margin-top: 0.3rem;">${e.equipment_name}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Category</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">${e.category}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Building</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">${loc.building || 'Unassigned'}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Floor</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">${loc.floor || 'Unassigned'}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Department</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">${loc.department || 'Unassigned'}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Room / Unit</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">${loc.room || 'Unassigned'}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Current Location</div>
+                                <div style="font-weight: 600; margin-top: 0.3rem;">📍 ${loc.building ? `${loc.building} - ${loc.room}` : 'Unassigned'}</div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Availability / Status</div>
+                                <div style="margin-top: 0.3rem;"><span class="status-pill ${e.status === 'AVAILABLE' ? 'status-available' : 'status-in-use'}">${e.status}</span></div>
+                            </div>
+                            <div style="background: rgba(10, 15, 29, 0.6); padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
+                                <div style="font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase;">Maintenance Status</div>
+                                <div style="margin-top: 0.3rem;"><span class="status-pill ${e.maintenance_status === 'NORMAL' ? 'status-available' : 'status-maintenance'}">${e.maintenance_status}</span></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 1rem; padding: 0.8rem; background: rgba(15, 23, 42, 0.8); border-radius: 10px; border: 1px dashed var(--border); text-align: right; font-size: 0.78rem; color: var(--text-sub);">
+                            🕒 Last Updated in Database: <strong>${lastUpdated}</strong>
+                        </div>
+                    `;
+                } else {
+                    detailsContainer.innerHTML = `<div style="color: var(--accent-red); padding: 1rem; text-align: center;">Failed to fetch equipment specifications.</div>`;
+                }
+            } catch (err) {
+                detailsContainer.innerHTML = `<div style="color: var(--accent-red); padding: 1rem; text-align: center;">Connection error.</div>`;
+            }
+        }
+
+        async function loadLocations() {
+            const res = await fetch('/api/locations', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('location-table-body');
+                tbody.innerHTML = '';
+                data.data.forEach(l => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${l.building}</strong></td>
+                            <td>${l.floor}</td>
+                            <td>${l.department}</td>
+                            <td>${l.room}</td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        async function loadMaintenance() {
+            const res = await fetch('/api/maintenance', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('maintenance-table-body');
+                tbody.innerHTML = '';
+                data.data.forEach(m => {
+                    const eqName = m.equipment ? m.equipment.equipment_name : 'Medical Equipment';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${eqName}</strong></td>
+                            <td>${new Date(m.scheduled_date).toLocaleDateString()}</td>
+                            <td><span class="status-pill status-maintenance">${m.status}</span></td>
+                            <td>${m.remarks || '-'}</td>
+                            <td>
+                                ${m.status !== 'COMPLETED' ? `<button class="action-btn action-edit" onclick="completeMaint('${m.maintenance_id}')">Mark Complete</button>` : 'Service Complete'}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        }
+
+        function toggleRegisterModal() { document.getElementById('modal-register').style.display = 'flex'; }
+        function openAddLocationModal() { document.getElementById('modal-location').style.display = 'flex'; }
+        
+        async function openAddEquipmentModal() {
+            // Reset form state on each open
+            document.getElementById('eq-name').value = '';
+            document.getElementById('eq-cat').value = '';
+            if (document.getElementById('eq-qr-url')) document.getElementById('eq-qr-url').value = '';
+            updateQrPreview();
+            const feedbackEl = document.getElementById('eq-form-feedback');
+            if (feedbackEl) feedbackEl.style.display = 'none';
+            const btn = document.getElementById('eq-register-btn');
+            if (btn) { btn.disabled = false; btn.innerHTML = '\uD83D\uDCCB Register &amp; Assign QR'; }
+
+            const res = await fetch('/api/locations', { headers: { 'Authorization': `Bearer ${authToken}` } });
+            if (res.ok) {
+                const data = await res.json();
+                const sel = document.getElementById('eq-loc');
+                sel.innerHTML = '<option value="">Select Ward / Location</option>';
+                data.data.forEach(l => {
+                    sel.innerHTML += `<option value="${l.location_id}">${l.building} (${l.room})</option>`;
+                });
+            }
+            document.getElementById('modal-equipment').style.display = 'flex';
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const password = document.getElementById('reg-password').value;
+            const role = document.getElementById('reg-role').value;
+            const department = document.getElementById('reg-dept').value.trim();
+
+            let feedbackEl = document.getElementById('reg-feedback');
+            if (!feedbackEl) {
+                feedbackEl = document.createElement('div');
+                feedbackEl.id = 'reg-feedback';
+                feedbackEl.style.cssText = 'font-size:0.83rem; padding:0.5rem 0.8rem; border-radius:8px; margin-bottom:0.8rem; display:none;';
+                document.getElementById('modal-register').querySelector('.modal-content').prepend(feedbackEl);
+            }
+
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, role, department })
+            });
+
+            if (res.ok) {
+                closeModal('modal-register');
+                if (authToken) loadUsers();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                feedbackEl.style.display = 'block';
+                feedbackEl.style.background = 'rgba(255,80,80,0.12)';
+                feedbackEl.style.color = '#ff6b6b';
+                feedbackEl.style.border = '1px solid rgba(255,80,80,0.3)';
+                feedbackEl.textContent = '\u274C ' + (err.message || err.details || 'Registration failed.');
+            }
+        }
+
+        function updateQrPreview() {
+            const customVal = (document.getElementById('eq-qr-url')?.value || '').trim();
+            const previewEl = document.getElementById('eq-qr-preview-text');
+            if (!previewEl) return;
+            if (customVal) {
+                previewEl.style.color = 'var(--accent-cyan)';
+                previewEl.style.fontStyle = 'normal';
+                previewEl.textContent = customVal;
+            } else {
+                previewEl.style.color = 'var(--text-sub)';
+                previewEl.style.fontStyle = 'italic';
+                previewEl.textContent = 'Auto-generate on registration (e.g. /equipment/{id})';
+            }
+        }
+
+        async function handleAddEquipment() {
+            const equipment_name = document.getElementById('eq-name').value.trim();
+            const category = document.getElementById('eq-cat').value.trim();
+            const location_id = document.getElementById('eq-loc').value;
+            const custom_qr_url = (document.getElementById('eq-qr-url')?.value || '').trim();
+
+            const feedbackEl = document.getElementById('eq-form-feedback');
+            const btn = document.getElementById('eq-register-btn');
+
+            if (!equipment_name || !category) {
+                feedbackEl.style.display = 'block';
+                feedbackEl.style.background = 'rgba(255,80,80,0.12)';
+                feedbackEl.style.color = '#ff6b6b';
+                feedbackEl.style.border = '1px solid rgba(255,80,80,0.3)';
+                feedbackEl.textContent = '⚠️ Equipment Name and Category are required.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Registering…';
+            feedbackEl.style.display = 'none';
+
+            const payload = { equipment_name, category, location_id };
+            if (custom_qr_url) payload.custom_qr_url = custom_qr_url;
+
+            const res = await fetch('/api/equipment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify(payload)
+            });
+
+            btn.disabled = false;
+            btn.innerHTML = '📋 Register &amp; Assign QR';
+
+            if (res.ok) {
+                const result = await res.json();
+                const qrUrl = result?.data?.qr_code?.qr_url || '';
+                feedbackEl.style.display = 'block';
+                feedbackEl.style.background = 'rgba(0,220,180,0.1)';
+                feedbackEl.style.color = 'var(--accent-cyan)';
+                feedbackEl.style.border = '1px solid rgba(0,220,180,0.25)';
+                feedbackEl.textContent = '✅ Equipment registered! QR assigned: ' + (qrUrl || 'auto-generated');
+                // Reset fields
+                document.getElementById('eq-name').value = '';
+                document.getElementById('eq-cat').value = '';
+                if (document.getElementById('eq-qr-url')) document.getElementById('eq-qr-url').value = '';
+                updateQrPreview();
+                loadEquipment();
+                // Close after short delay so user sees confirmation
+                setTimeout(() => closeModal('modal-equipment'), 1800);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                feedbackEl.style.display = 'block';
+                feedbackEl.style.background = 'rgba(255,80,80,0.12)';
+                feedbackEl.style.color = '#ff6b6b';
+                feedbackEl.style.border = '1px solid rgba(255,80,80,0.3)';
+                feedbackEl.textContent = '❌ ' + (err.message || 'Registration failed. Please try again.');
+            }
+        }
+
+        async function handleAddLocation() {
+            const building = document.getElementById('loc-bldg').value;
+            const floor = document.getElementById('loc-floor').value;
+            const department = document.getElementById('loc-dept').value;
+            const room = document.getElementById('loc-room').value;
+
+            const res = await fetch('/api/locations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ building, floor, department, room })
+            });
+            if (res.ok) {
+                closeModal('modal-location');
+                loadLocations();
+            }
+        }
+
+        async function markMaintenance(equipmentId) {
+            const res = await fetch('/api/maintenance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({
+                    equipment_id: equipmentId,
+                    scheduled_date: new Date().toISOString(),
+                    remarks: 'Scheduled from clinical dashboard'
+                })
+            });
+            if (res.ok) {
+                loadEquipment();
+                loadMaintenance();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert('Failed to schedule maintenance: ' + (err.message || err.details || 'Unknown error'));
+            }
+        }
+
+        let activeQrEquipmentId = null;
+        let activeQrUrl = null;
+
+        async function openQRModal(equipmentId, equipmentName) {
+            activeQrEquipmentId = equipmentId;
+            document.getElementById('qr-target-title').innerText = equipmentName;
+            document.getElementById('qr-target-subtitle').innerText = `ID: ${equipmentId}`;
+            
+            const canvasContainer = document.getElementById('qrcode-canvas-container');
+            canvasContainer.innerHTML = `<div style="padding: 1rem; color: #64748b; font-size: 0.85rem;">Generating QR...</div>`;
+            document.getElementById('modal-qr-management').style.display = 'flex';
+
+            try {
+                const res = await fetch(`/api/equipment/${equipmentId}/qr`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const qrData = data.data;
+                    activeQrUrl = qrData.qr_url;
+
+                    canvasContainer.innerHTML = '';
+                    new QRCode(canvasContainer, {
+                        text: activeQrUrl,
+                        width: 180,
+                        height: 180,
+                        colorDark: "#070b15",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+
+                    document.getElementById('qr-stable-url').innerText = activeQrUrl;
+                    const badge = document.getElementById('qr-status-badge');
+                    if (qrData.status === 'ACTIVE') {
+                        badge.innerHTML = `<span class="status-pill status-available">ACTIVE TAG</span>`;
+                    } else if (qrData.status === 'INACTIVE') {
+                        badge.innerHTML = `<span class="status-pill status-maintenance">DEACTIVATED TAG</span>`;
+                    } else {
+                        badge.innerHTML = `<span class="status-pill status-in-use">${qrData.status}</span>`;
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function printDownloadQR() {
+            if (!activeQrUrl) return;
+            const container = document.getElementById('qrcode-canvas-container');
+            const img = container.querySelector('img') || container.querySelector('canvas');
+            if (!img) return;
+
+            const printWin = window.open('', '_blank');
+            const imgSrc = img.src || img.toDataURL();
+            const eqTitle = document.getElementById('qr-target-title').innerText;
+            const eqSub = document.getElementById('qr-target-subtitle').innerText;
+
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Print Asset Tag - ${eqTitle}</title>
+                    <style>
+                        body { font-family: sans-serif; text-align: center; padding: 2rem; }
+                        .tag-box { border: 2px solid #000; display: inline-block; padding: 1.5rem; border-radius: 12px; }
+                        h2 { margin: 0 0 0.5rem 0; font-size: 1.3rem; }
+                        p { margin: 0 0 1rem 0; color: #555; font-size: 0.85rem; }
+                        img { width: 220px; height: 220px; }
+                        .url { margin-top: 1rem; font-size: 0.75rem; color: #777; font-family: monospace; }
+                    </style>
+                </head>
+                <body>
+                    <div class="tag-box">
+                        <h2>🏥 MediPulse Asset Tag</h2>
+                        <p><strong>${eqTitle}</strong><br>${eqSub}</p>
+                        <img src="${imgSrc}" />
+                        <div class="url">${activeQrUrl}</div>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
+        }
+
+        async function deactivateQR() {
+            if (!activeQrEquipmentId) return;
+            if (!confirm("Deactivate this QR code tag? Scans will be disabled until reissued.")) return;
+            
+            const res = await fetch(`/api/equipment/${activeQrEquipmentId}/qr/deactivate`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+                openQRModal(activeQrEquipmentId, document.getElementById('qr-target-title').innerText);
+            }
+        }
+
+        async function reissueQR() {
+            if (!activeQrEquipmentId) return;
+            if (!confirm("Reissue new permanent QR tag for this equipment?")) return;
+
+            const res = await fetch(`/api/equipment/${activeQrEquipmentId}/qr/reissue`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+                openQRModal(activeQrEquipmentId, document.getElementById('qr-target-title').innerText);
+            }
+        }
+
+        async function assignCustomQR() {
+            if (!activeQrEquipmentId) return;
+            const inputVal = document.getElementById('custom-qr-input').value.trim();
+            if (!inputVal) {
+                alert("Please enter a valid QR code identifier or URL to assign.");
+                return;
+            }
+
+            const res = await fetch(`/api/equipment/${activeQrEquipmentId}/qr/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ qr_url: inputVal })
+            });
+
+            if (res.ok) {
+                document.getElementById('custom-qr-input').value = '';
+                openQRModal(activeQrEquipmentId, document.getElementById('qr-target-title').innerText);
+            } else {
+                alert("Failed to assign custom QR code.");
+            }
+        }
+
+        async function completeMaint(maintId) {
+            await fetch(`/api/maintenance/${maintId}/complete`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                body: JSON.stringify({ remarks: 'Service Completed' })
+            });
+            loadMaintenance();
+        }
+    </script>
+</body>
+</html>
