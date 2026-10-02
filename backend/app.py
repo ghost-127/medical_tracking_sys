@@ -392,6 +392,17 @@ def create_app():
         except Exception as e:
             return jsonify({"error": "Failed to update equipment", "details": str(e)}), 500
 
+    @app.route('/api/equipment/<equipment_id>', methods=['DELETE'])
+    @require_auth(['ADMIN'])
+    def delete_equipment(equipment_id):
+        try:
+            # First, clean up QR codes and maintenance records if needed, or let Supabase cascade handling it.
+            # Assuming cascade delete is enabled, or we just try deleting it.
+            res = db.table('equipment').delete().eq('equipment_id', equipment_id).execute()
+            return jsonify({"message": "Equipment deleted successfully.", "data": res.data}), 200
+        except Exception as e:
+            return jsonify({"error": "Failed to delete equipment", "details": str(e)}), 500
+
     # ------------------------------------------------------------------------
     # MAINTENANCE ENDPOINTS
     # ------------------------------------------------------------------------

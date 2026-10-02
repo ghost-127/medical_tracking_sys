@@ -212,6 +212,30 @@
             flex-direction: column;
             padding: 1.5rem 1.2rem;
             z-index: 100;
+            transition: margin-left 0.3s var(--ease-spring);
+        }
+
+        #sidebar.collapsed {
+            margin-left: -270px;
+        }
+
+        .hamburger-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            transition: background 0.2s;
+            margin-right: 1rem;
+        }
+        .hamburger-btn:hover {
+            background: var(--bg-card-hover);
         }
 
         .brand-header {
@@ -555,13 +579,12 @@
         <!-- OVERVIEW MONITOR TAB -->
         <div id="tab-dashboard" class="tab-pane">
             <div class="page-header">
-                <div>
-                    <h1>Clinical Operations Monitor</h1>
-                    <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0.3rem;">Real-time hospital inventory status & asset tracking</p>
-                </div>
-                <div class="clinical-badge">
-                    <div class="pulse-dot"></div>
-                    <span>Supabase Live Sync Active</span>
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div>
+                        <h1>Clinical Operations Monitor</h1>
+                        <p style="color: var(--text-sub); font-size: 0.9rem; margin-top: 0.3rem;">Real-time hospital inventory status & asset tracking</p>
+                    </div>
                 </div>
             </div>
 
@@ -588,9 +611,12 @@
         <!-- EQUIPMENT INVENTORY TAB -->
         <div id="tab-equipment" class="tab-pane" style="display: none;">
             <div class="page-header">
-                <div>
-                    <h1>Medical Equipment Inventory</h1>
-                    <p style="color: var(--text-sub); font-size: 0.9rem;">Track ventilators, ECG monitors, defibrillators & clinical devices</p>
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div>
+                        <h1>Medical Equipment Inventory</h1>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">Track ventilators, ECG monitors, defibrillators & clinical devices</p>
+                    </div>
                 </div>
                 <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="openAddEquipmentModal()">+ Add New Equipment</button>
             </div>
@@ -620,9 +646,12 @@
         <!-- LOCATIONS TAB -->
         <div id="tab-locations" class="tab-pane" style="display: none;">
             <div class="page-header">
-                <div>
-                    <h1>Clinical Wards & Locations</h1>
-                    <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital buildings, floors, departments, and rooms</p>
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div>
+                        <h1>Clinical Wards & Locations</h1>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital buildings, floors, departments, and rooms</p>
+                    </div>
                 </div>
                 <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="openAddLocationModal()">+ Add Clinical Room</button>
             </div>
@@ -644,9 +673,12 @@
         <!-- MAINTENANCE TAB -->
         <div id="tab-maintenance" class="tab-pane" style="display: none;">
             <div class="page-header">
-                <div>
-                    <h1>Maintenance & Repair Schedules</h1>
-                    <p style="color: var(--text-sub); font-size: 0.9rem;">Calibrations, inspections, and repair logs</p>
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div>
+                        <h1>Maintenance & Repair Schedules</h1>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">Calibrations, inspections, and repair logs</p>
+                    </div>
                 </div>
             </div>
             <div class="card-table-container">
@@ -668,9 +700,12 @@
         <!-- USERS TAB -->
         <div id="tab-users" class="tab-pane" style="display: none;">
             <div class="page-header">
-                <div>
-                    <h1>Staff & Nurse Registry</h1>
-                    <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital user roles and access permissions</p>
+                <div style="display: flex; align-items: center;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div>
+                        <h1>Staff & Nurse Registry</h1>
+                        <p style="color: var(--text-sub); font-size: 0.9rem;">Manage hospital user roles and access permissions</p>
+                    </div>
                 </div>
                 <button class="btn" style="width: auto; padding: 0.7rem 1.4rem;" onclick="toggleRegisterModal()">+ Add Staff / Nurse Account</button>
             </div>
@@ -937,12 +972,19 @@
         function handleLogout() {
             localStorage.removeItem('access_token');
             authToken = null;
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
             const overlay = document.getElementById('login-overlay');
             overlay.style.opacity = '';
             overlay.style.visibility = '';
             overlay.style.display = 'flex';
             document.getElementById('sidebar').style.display = 'none';
             document.getElementById('main-content').style.display = 'none';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
         }
 
         function switchTab(evt, tabName) {
@@ -1048,6 +1090,7 @@
                             <button class="action-btn action-edit" style="margin-right: 0.3rem;" onclick="openEquipmentDetailsModal('${e.equipment_id}')">View Details</button>
                             <button class="action-btn action-edit" style="margin-right: 0.3rem;" onclick="openQRModal('${e.equipment_id}', '${safeName}')">📱 QR Tag</button>
                             <button class="action-btn action-edit" onclick="markMaintenance('${e.equipment_id}')">Service</button>
+                            ${currentProfile && currentProfile.role === 'ADMIN' ? `<button class="action-btn action-disable" style="margin-left: 0.3rem;" onclick="deleteEquipment('${e.equipment_id}')">Delete</button>` : ''}
                         </td>
                     </tr>
                 `;
@@ -1351,6 +1394,21 @@
             } else {
                 const err = await res.json().catch(() => ({}));
                 alert('Failed to schedule maintenance: ' + (err.message || err.details || 'Unknown error'));
+            }
+        }
+
+        async function deleteEquipment(equipmentId) {
+            if (!confirm("Are you sure you want to delete this equipment? This action cannot be undone.")) return;
+            const res = await fetch(`/api/equipment/${equipmentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (res.ok) {
+                loadEquipment();
+                loadDashboardStats();
+            } else {
+                const err = await res.json().catch(() => ({}));
+                alert('Failed to delete equipment: ' + (err.message || err.details || 'Unknown error'));
             }
         }
 
