@@ -1125,7 +1125,7 @@
                     const resData = await res.json();
                     const e = resData.data;
                     const loc = e.locations || {};
-                    const lastUpdated = e.updated_at ? new Date(e.updated_at).toLocaleString() : (e.created_at ? new Date(e.created_at).toLocaleString() : 'N/A');
+                    const lastUpdated = (e.last_updated || e.updated_at) ? new Date(e.last_updated || e.updated_at).toLocaleString() : (e.created_at ? new Date(e.created_at).toLocaleString() : 'N/A');
 
                     detailsContainer.innerHTML = `
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
