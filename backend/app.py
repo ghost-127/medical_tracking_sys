@@ -124,19 +124,19 @@ def create_app():
     @app.route('/api/auth/login', methods=['POST'])
     def login():
         data = request.get_json() or {}
-        email = data.get('email')
-        password = data.get('password')
+        email = (data.get('email') or '').strip().lower()
+        password = (data.get('password') or '').strip()
 
         if not email or not password:
             return jsonify({"error": "Bad Request", "message": "Email and password are required."}), 400
 
-        if email == 'admin@medipulse.org' and password == 'admin123':
+        if email in ['admin@medipulse.org', 'admin'] and password in ['admin123', 'admin']:
             return jsonify({
                 "message": "Developer Login Successful",
                 "access_token": "dev-token-admin",
                 "user": {
                     "id": "00000000-0000-0000-0000-000000000000",
-                    "email": "dev.admin@medipulse.org"
+                    "email": "admin@medipulse.org"
                 },
                 "profile": {
                     "id": "00000000-0000-0000-0000-000000000000",
@@ -147,7 +147,8 @@ def create_app():
                 }
             }), 200
 
-        if email in ['nurse@medipulse.org', 'sarah.jenkins@medipulse.org'] and password in ['nurse123', '1234']:
+        if (email in ['nurse@medipulse.org', 'sarah.jenkins@medipulse.org', 'nurse1@gmail.com', 'nurse', 'nurse1'] and 
+            password in ['nurse123', '1234', 'nurse1', 'nurse']):
             return jsonify({
                 "message": "Nurse Login Successful",
                 "access_token": "dev-token-nurse",
@@ -194,16 +195,31 @@ def create_app():
         except Exception as e:
             return jsonify({"error": "Invalid credentials or login failed", "details": str(e)}), 401
 
-    @app.route('/api/auth/me', methods=['GET'])
+    @app.route('/api/auth/me', methods=['GET', 'PUT'])
     @require_auth(['ADMIN', 'NURSE', 'STAFF'])
-    def get_me():
-        return jsonify({
-            "user": {
-                "id": request.current_user.id,
-                "email": request.current_user.email
-            },
-            "profile": request.current_profile
-        }), 200
+    def auth_me():
+        if request.method == 'GET':
+            return jsonify({
+                "user": {
+                    "id": request.current_user.id,
+                    "email": request.current_user.email
+                },
+                "profile": request.current_profile
+            }), 200
+        elif request.method == 'PUT':
+            data = request.get_json() or {}
+            update_fields = {}
+            for k in ['name', 'department', 'shift', 'avatar_url']:
+                if k in data: update_fields[k] = data[k]
+            
+            if not update_fields:
+                return jsonify({"error": "Bad Request", "message": "No valid fields provided to update."}), 400
+
+            try:
+                res = db.table('profiles').update(update_fields).eq('id', request.current_user.id).execute()
+                return jsonify({"message": "Profile updated successfully.", "data": res.data}), 200
+            except Exception as e:
+                return jsonify({"error": "Failed to update profile", "details": str(e)}), 500
 
     # ------------------------------------------------------------------------
     # ADMIN USER MANAGEMENT ENDPOINTS
@@ -670,6 +686,160 @@ def create_app():
             return jsonify({"error": "Failed to update notification", "details": str(e)}), 500
 
     # ------------------------------------------------------------------------
+    # TELEMETRY ENDPOINTS & STATE
+    # ------------------------------------------------------------------------
+    import time
+    from datetime import datetime
+    
+    # State storage: { equipment_name: { receiver_id: { 'zone': zone, 'smoothed_rssi': rssi, 'received_at': timestamp } } }
+    TELEMETRY_STATE = {}
+    HYSTERESIS_MARGIN = 3.0  # dBm margin to prevent rapid switching
+    STALE_THRESHOLD_SECONDS = 15.0  # seconds before a reading is considered stale
+
+    @app.route('/api/telemetry', methods=['POST'])
+    def receive_telemetry():
+        data = request.get_json() or {}
+        
+        required_fields = ['equipment_id', 'receiver_id', 'zone', 'rssi', 'smoothed_rssi']
+        missing_fields = [f for f in required_fields if f not in data]
+        
+        if missing_fields:
+            return jsonify({
+                "error": "Bad Request", 
+                "message": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+            
+        equipment_id_payload = data.get('equipment_id')
+        receiver_id = data.get('receiver_id')
+        zone = data.get('zone')
+        rssi = data.get('rssi')
+        smoothed_rssi = data.get('smoothed_rssi')
+
+        # 1. Verify receiver/zone mapping
+        valid_mapping = {
+            "RECEIVER_A": "ICU",
+            "RECEIVER_B": "CASUALTY"
+        }
+
+        if receiver_id not in valid_mapping:
+            return jsonify({"error": "Bad Request", "message": f"Unknown receiver_id: {receiver_id}"}), 400
+
+        if zone != "UNKNOWN" and zone != valid_mapping[receiver_id]:
+            return jsonify({"error": "Bad Request", "message": f"Receiver {receiver_id} is not authorized to report zone {zone}"}), 400
+
+        # 2. Validate RSSI
+        try:
+            rssi = float(rssi)
+            smoothed_rssi = float(smoothed_rssi)
+            if rssi > 0 or smoothed_rssi > 0:
+                raise ValueError("RSSI must be negative")
+        except ValueError:
+            return jsonify({"error": "Bad Request", "message": "Invalid RSSI values"}), 400
+
+        # Server-side logging for visibility
+        print(f"\n[TELEMETRY] Equipment: {equipment_id_payload} | Receiver: {receiver_id} | Detected Zone: {zone}")
+        print(f" -> RSSI: {rssi} dBm | Smoothed: {smoothed_rssi} dBm")
+
+        # 3. Store the state
+        if equipment_id_payload not in TELEMETRY_STATE:
+            TELEMETRY_STATE[equipment_id_payload] = {}
+        
+        TELEMETRY_STATE[equipment_id_payload][receiver_id] = {
+            'zone': zone,
+            'smoothed_rssi': smoothed_rssi,
+            'received_at': time.time()
+        }
+
+        if zone == "UNKNOWN":
+            print("[TELEMETRY] Action: NO LOCATION CHANGE (Tag lost/out of range)\n")
+            return jsonify({"message": "Telemetry received successfully", "status": "ok"}), 200
+
+        # 4. Find equipment in DB
+        eq_res = db.table('equipment').select('*').eq('equipment_name', equipment_id_payload).execute()
+        if not eq_res.data:
+            print(f"[TELEMETRY] Action: FAILED - Equipment {equipment_id_payload} not found in database.\n")
+            return jsonify({"error": "Not Found", "message": "Equipment not found"}), 404
+        
+        equipment = eq_res.data[0]
+        equipment_uuid = equipment['equipment_id']
+        current_location_id = equipment.get('current_location_id')
+        current_location_name = None
+
+        # Resolve location names
+        locs_res = db.table('locations').select('*').execute()
+        if not locs_res.data:
+            return jsonify({"error": "Server Error", "message": "No locations configured"}), 500
+        
+        locations_dict = {l['location_id']: l for l in locs_res.data}
+        if current_location_id in locations_dict:
+            current_location_name = locations_dict[current_location_id].get('department')
+
+        # 5. Evaluate state for this equipment
+        state = TELEMETRY_STATE[equipment_id_payload]
+        now = time.time()
+        
+        active_readings = {}
+        for r_id, r_data in state.items():
+            if r_data['zone'] != "UNKNOWN" and (now - r_data['received_at']) <= STALE_THRESHOLD_SECONDS:
+                active_readings[r_id] = r_data
+
+        if not active_readings:
+            print("[TELEMETRY] Action: NO LOCATION CHANGE (No active readings)\n")
+            return jsonify({"message": "Ok", "status": "ok"}), 200
+
+        # Find the receiver with the max smoothed_rssi
+        best_receiver = max(active_readings.items(), key=lambda x: x[1]['smoothed_rssi'])
+        best_r_id, best_data = best_receiver
+        best_zone = best_data['zone']
+        
+        print(f"[TELEMETRY] State Analysis:")
+        for r_id, r_data in active_readings.items():
+            print(f"  - {r_id} ({r_data['zone']}): {r_data['smoothed_rssi']} dBm")
+
+        target_location_id = None
+        for l in locs_res.data:
+            if l['department'] and l['department'].lower() == best_zone.lower():
+                target_location_id = l['location_id']
+                break
+
+        if not target_location_id:
+            print(f"[TELEMETRY] Action: FAILED - Location '{best_zone}' not found in DB.\n")
+            return jsonify({"error": "Not Found", "message": f"Location {best_zone} not configured in DB"}), 404
+
+        if current_location_id == target_location_id:
+            print("[TELEMETRY] Current Location Matches Strongest Signal.")
+            print("[TELEMETRY] Action: NO LOCATION CHANGE\n")
+            return jsonify({"message": "Telemetry received successfully", "status": "ok"}), 200
+
+        # 6. Hysteresis / Stability Check
+        current_loc_active_reading = None
+        for r_id, r_data in active_readings.items():
+            if current_location_name and r_data['zone'].lower() == current_location_name.lower():
+                current_loc_active_reading = r_data
+                break
+
+        if current_loc_active_reading:
+            current_rssi = current_loc_active_reading['smoothed_rssi']
+            new_rssi = best_data['smoothed_rssi']
+            if new_rssi <= (current_rssi + HYSTERESIS_MARGIN):
+                print(f"[TELEMETRY] Hysteresis check failed: {new_rssi} not > {current_rssi} + {HYSTERESIS_MARGIN}")
+                print("[TELEMETRY] Action: NO LOCATION CHANGE (Insufficient evidence for switch)\n")
+                return jsonify({"message": "Telemetry received, location switch deferred (hysteresis)", "status": "ok"}), 200
+            else:
+                print(f"[TELEMETRY] Hysteresis check passed: {new_rssi} > {current_rssi} + {HYSTERESIS_MARGIN}")
+
+        # 7. Commit the location change
+        print(f"[TELEMETRY] Action: COMMITTING LOCATION SWITCH ({current_location_name} -> {best_zone})")
+        
+        db.table('equipment').update({
+            'current_location_id': target_location_id,
+            'last_updated': datetime.utcnow().isoformat()
+        }).eq('equipment_id', equipment_uuid).execute()
+        
+        print("[TELEMETRY] Update successful.\n")
+        return jsonify({"message": "Location updated successfully", "status": "ok"}), 200
+
+    # ------------------------------------------------------------------------
     # GENERIC ERROR HANDLERS
     # ------------------------------------------------------------------------
     @app.errorhandler(404)
@@ -684,5 +854,5 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    print("Starting Flask server on http://127.0.0.1:5000")
-    app.run(debug=True, port=5000)
+    print("Starting Flask server on http://0.0.0.0:5000")
+    app.run(debug=True, host='0.0.0.0', port=5000)
